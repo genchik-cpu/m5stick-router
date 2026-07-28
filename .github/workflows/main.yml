@@ -20,15 +20,19 @@ jobs:
       run: |
         arduino-cli config init
         arduino-cli config set board_manager.additional_urls https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+        
+        # РАЗРЕШАЕМ УСТАНОВКУ ИЗ ZIP-АРХИВОВ
+        arduino-cli config set library.enable_unsafe_install true
+        
         arduino-cli core update-index
         arduino-cli core install esp32:esp32
         
-        # Скачиваем M5GFX напрямую из официального репозитория, обходя лимиты
+        # Скачиваем M5GFX напрямую из официального репозитория
         echo "=== Скачивание и установка M5GFX ==="
         wget -q -O ./M5GFX-master.zip https://github.com/m5stack/M5GFX/archive/refs/heads/master.zip
         arduino-cli lib install --zip-path ./M5GFX-master.zip
         
-        # Установка остальных твоих ZIP-архивов, которые ты уже загрузил
+        # Установка остальных твоих ZIP-архивов
         echo "=== Установка локальных библиотек ==="
         arduino-cli lib install --zip-path ./M5Unified-develop.zip
         arduino-cli lib install --zip-path ./M5StickCPlus2-1.0.1.zip
