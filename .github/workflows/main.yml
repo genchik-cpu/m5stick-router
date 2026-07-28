@@ -16,13 +16,23 @@ jobs:
     - name: Setup Arduino CLI
       uses: arduino/setup-arduino-cli@v2
 
-    - name: Install ESP32 Platform & Libraries
+    - name: Install ESP32 Platform & Local ZIP Libraries
       run: |
         arduino-cli config init
-        arduino-cli config set board_manager.additional_urls https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json,https://static-cdn.m5stack.com/resource/arduino/package_m5stack_index.json
+        arduino-cli config set board_manager.additional_urls https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
         arduino-cli core update-index
         arduino-cli core install esp32:esp32
-        arduino-cli lib install "M5StickCPlus2" "WireGuard-ESP32"
+        
+        # Скачиваем M5GFX напрямую из официального репозитория, обходя лимиты
+        echo "=== Скачивание и установка M5GFX ==="
+        wget -q -O ./M5GFX-master.zip https://github.com/m5stack/M5GFX/archive/refs/heads/master.zip
+        arduino-cli lib install --zip-path ./M5GFX-master.zip
+        
+        # Установка остальных твоих ZIP-архивов, которые ты уже загрузил
+        echo "=== Установка локальных библиотек ==="
+        arduino-cli lib install --zip-path ./M5Unified-develop.zip
+        arduino-cli lib install --zip-path ./M5StickCPlus2-1.0.1.zip
+        arduino-cli lib install --zip-path ./WireGuard-ESP32-Arduino-main.zip
 
     - name: Patch liblwip.a for NAT Support
       run: |
@@ -40,7 +50,7 @@ jobs:
     - name: Compile Firmware
       run: |
         mkdir -p build
-        # Компилируем под M5StickC Plus 2
+        # Компиляция под M5StickC Plus 2
         arduino-cli compile --fqbn esp32:esp32:m5stick_c_plus2 ./ --output-dir ./build
 
     - name: Upload Firmware Artifact
