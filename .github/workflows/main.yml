@@ -1,0 +1,51 @@
+name: Compile ESP32 NAT Firmware
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Arduino CLI
+      uses: arduino/setup-arduino-cli@v2
+
+    - name: Install ESP32 Platform & Libraries
+      run: |
+        arduino-cli config init
+        arduino-cli config set board_manager.additional_urls https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json,https://static-cdn.m5stack.com/resource/arduino/package_m5stack_index.json
+        arduino-cli core update-index
+        arduino-cli core install esp32:esp32
+        arduino-cli lib install "M5StickCPlus2" "WireGuard-ESP32"
+
+    - name: Patch liblwip.a for NAT Support
+      run: |
+        LWIP_DIR=$(find ~/.arduino15/packages/esp32/hardware/esp32/ -type d -name "esp32" | grep "tools/sdk")
+        if [ -n "$LWIP_DIR" ]; then
+          cd "$LWIP_DIR/lib"
+          mv liblwip.a liblwip.a.bak
+          wget -q -O liblwip.a "https://raw.githubusercontent.com/dchristl/esp32_nat_router_extended/main/components/lwip/lib/esp32/liblwip.a"
+          echo "Патч lwIP успешно применен!"
+        else
+          echo "Ошибка: ядро ESP32 не найдено!"
+          exit 1
+        fi
+
+    - name: Compile Firmware
+      run: |
+        mkdir -p build
+        # Компилируем под M5StickC Plus 2
+        arduino-cli compile --fqbn esp32:esp32:m5stick_c_plus2 ./ --output-dir ./build
+
+    - name: Upload Firmware Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: M5Router-Firmware
+        path: ./build/*.bin
+        
