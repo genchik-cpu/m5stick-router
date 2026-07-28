@@ -1,1 +1,25 @@
-
+    - name: Patch liblwip.a for NAT Support
+      run: |
+        # Ищем папку lib, в которой лежит оригинальный liblwip.a именно для классического esp32
+        LWIP_DIR=$(find ~/.arduino15/packages/esp32/hardware/esp32/ -type f -name "liblwip.a" -exec dirname {} \;)
+        
+        # Если нашли несколько (например, для разных ревизий), берем ту, что относится к базовому esp32
+        TARGET_DIR=$(echo "$LWIP_DIR" | grep -E "esp32$" | head -n 1)
+        
+        if [ -n "$TARGET_DIR" ] && [ -d "$TARGET_DIR" ]; then
+          echo "Целевая директория найдена: $TARGET_DIR"
+          cd "$TARGET_DIR"
+          
+          # Бэкапим оригинал, если еще не бэкапили
+          if [ ! -f "liblwip.a.bak" ]; then
+            mv liblwip.a liblwip.a.bak
+          fi
+          
+          # Качаем пропатченный lwip
+          wget -q -O liblwip.a "https://raw.githubusercontent.com/dchristl/esp32_nat_router_extended/main/components/lwip/lib/esp32/liblwip.a"
+          echo "Патч lwIP успешно применен!"
+        else
+          echo "Ошибка: Файл liblwip.a в структуре ядра ESP32 не найден!"
+          exit 1
+        fi
+        
